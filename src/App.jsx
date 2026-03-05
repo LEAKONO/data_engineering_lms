@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { curriculum } from './data/index';
 import { useLocalStorage } from './hooks/useLocalStorage';
-import { calculateProgress, getAdjacentSections, findSectionById, searchContent } from './utils/helpers';
+import { calculateProgress, getAdjacentSections, searchContent } from './utils/helpers';
 
 import TopBar from './components/layout/TopBar';
 import Sidebar from './components/layout/Sidebar';
@@ -13,6 +13,7 @@ import InfoBox from './components/shared/InfoBox';
 import QuizComponent from './components/shared/QuizComponent';
 import NotesPanel from './components/sections/NotesPanel';
 import NavigationButtons from './components/sections/NavigationButtons';
+import MobileMenu from './components/layout/MobileMenu';
 
 // Add Google Fonts
 const fontLink = document.createElement("link");
@@ -23,7 +24,8 @@ document.head.appendChild(fontLink);
 export default function App() {
   const [activeCh, setActiveCh] = useState("ch1");
   const [activeSec, setActiveSec] = useState("ch1s1");
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [progress, setProgress] = useLocalStorage('de-progress', {});
   const [searchResults, setSearchResults] = useState([]);
   const contentRef = useRef(null);
@@ -37,12 +39,26 @@ export default function App() {
     if (contentRef.current) {
       contentRef.current.scrollTop = 0;
     }
+    setMobileMenuOpen(false);
   }, [activeSec]);
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024) {
+        setMobileMenuOpen(false);
+        setSidebarOpen(false);
+      }
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleNavigate = (chId, secId) => {
     setActiveCh(chId);
     setActiveSec(secId);
     setSearchResults([]);
+    setSidebarOpen(false);
+    setMobileMenuOpen(false);
   };
 
   const handleMarkDone = () => {
@@ -60,13 +76,13 @@ export default function App() {
     switch (block.type) {
       case "text":
         return (
-          <p key={index} className="text-slate-300 leading-relaxed mb-4 text-sm">
+          <p key={index} className="text-slate-300 leading-relaxed mb-4 text-sm sm:text-base break-words">
             {block.content}
           </p>
         );
       case "code":
         return (
-          <CodeBlock key={index} label={block.label} code={block.code} />
+          <CodeBlock key={index} label={block.label} code={block.code} language={block.language} />
         );
       case "table":
         return (
@@ -88,17 +104,17 @@ export default function App() {
 
   return (
     <div 
+      className="h-screen flex flex-col overflow-hidden"
       style={{
         fontFamily: "'Outfit', sans-serif",
         background: "#080c14",
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column"
       }}
     >
       <TopBar
         sidebarOpen={sidebarOpen}
         setSidebarOpen={setSidebarOpen}
+        mobileMenuOpen={mobileMenuOpen}
+        setMobileMenuOpen={setMobileMenuOpen}
         completedCount={progressStats.completed}
         totalSecs={progressStats.total}
         onSearch={handleSearch}
@@ -106,38 +122,69 @@ export default function App() {
         onNavigate={handleNavigate}
       />
 
-      <div className="flex flex-1 overflow-hidden">
-        {sidebarOpen && (
+      {mobileMenuOpen && (
+        <MobileMenu
+          curriculum={curriculum}
+          activeCh={activeCh}
+          activeSec={activeSec}
+          progress={progress}
+          onNavigate={handleNavigate}
+          onClose={() => setMobileMenuOpen(false)}
+        />
+      )}
+
+      <div className="flex flex-1 overflow-hidden relative">
+        {/* Sidebar */}
+        <div className={`
+          fixed lg:relative inset-y-0 left-0 z-30 w-64 sm:w-72 transform transition-transform duration-300 ease-in-out
+          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:transform-none lg:translate-x-0 lg:block
+        `}>
           <Sidebar
             curriculum={curriculum}
             activeCh={activeCh}
             activeSec={activeSec}
             progress={progress}
             onNavigate={handleNavigate}
+            onClose={() => setSidebarOpen(false)}
+          />
+        </div>
+
+        {/* Sidebar overlay */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-20 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
           />
         )}
 
-        <ContentArea
-          ref={contentRef}
-          chapter={chapter}
-          section={section}
-          progress={progress}
-          onRenderBlock={renderBlock}
-          onMarkDone={handleMarkDone}
-          onNavigate={handleNavigate}
-          adjacentSections={adjacentSections}
-          NotesPanel={NotesPanel}
-          QuizComponent={QuizComponent}
-          NavigationButtons={NavigationButtons}
-        />
+        {/* Main Content */}
+        <main className="flex-1 overflow-hidden">
+          <ContentArea
+            ref={contentRef}
+            chapter={chapter}
+            section={section}
+            progress={progress}
+            onRenderBlock={renderBlock}
+            onMarkDone={handleMarkDone}
+            onNavigate={handleNavigate}
+            adjacentSections={adjacentSections}
+            NotesPanel={NotesPanel}
+            QuizComponent={QuizComponent}
+            NavigationButtons={NavigationButtons}
+          />
+        </main>
 
-        <RightPanel
-          curriculum={curriculum}
-          chapter={chapter}
-          activeSec={activeSec}
-          progress={progress}
-          onNavigate={handleNavigate}
-        />
+        {/* Right Panel */}
+        <div className="hidden xl:block">
+          <RightPanel
+            curriculum={curriculum}
+            chapter={chapter}
+            activeSec={activeSec}
+            progress={progress}
+            onNavigate={handleNavigate}
+          />
+        </div>
       </div>
     </div>
   );

@@ -1,7 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+/* Add to src/index.css */
+html, body {
+  overflow: hidden;
+  height: 100%;
+  position: fixed;
+  width: 100%;
+}
 
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Better touch scrolling */
+.overflow-y-auto {
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent text overflow */
+.break-words {
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
 @layer base {
   body {
     @apply bg-[#080c14] text-slate-200 antialiased;

@@ -5,6 +5,9 @@ module.exports = {
   ],
   theme: {
     extend: {
+      screens: {
+        'xs': '475px',
+      },
       fontFamily: {
         'outfit': ['Outfit', 'sans-serif'],
         'jetbrains': ['JetBrains Mono', 'monospace'],
@@ -19,11 +22,16 @@ module.exports = {
       },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',
+        'slide-right': 'slideRight 0.3s ease-out',
       },
       keyframes: {
         fadeIn: {
           '0%': { opacity: '0', transform: 'translateY(10px)' },
           '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        slideRight: {
+          '0%': { transform: 'translateX(-100%)' },
+          '100%': { transform: 'translateX(0)' },
         },
       },
     },
